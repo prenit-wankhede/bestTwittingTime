@@ -42,7 +42,7 @@ module ApplicationHelper
 			num_attempts += 1
 			begin 
 				output_array = output_array + client.user_timeline(user[:screen_name])
-				Rails.logger.debug "@@@@@@@@@@@@@@@@@ #{user[:screen_name]}: #{output_array.inspect}"
+				
 			rescue Twitter::Error::Unauthorized => error
 				Rails.logger.debug "$$$$$$$$$$$$$$$$$$$$ error raised for " + user[:screen_name] + " in getting twits \n"
 				return output_array
