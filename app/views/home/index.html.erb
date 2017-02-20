@@ -1,0 +1,19 @@
+<h1> Simple App to find best twitting time for a user </h1><br>
+
+<%= form_tag :get_best_twit_time, method: :post, onsubmit: "return checkInput();" do %>
+	<%= text_field_tag :username, nil, placeholder: "Twitter username", id: "twitter-username-field" %> <br>
+	<%= text_field_tag :user_id, nil, placeholder: "Twitter userID", id: "twitter-userid-field" %> <br>
+	<%= submit_tag :submit, data: {disable_with: "wait.."} %>
+<% end %>
+
+<script type="text/javascript">
+	function checkInput(){
+		if($("#twitter-username-field").val() || $("#twitter-userid-field").val()){
+			return true;
+		}else{
+			alert("fill at least one of the username or userID");
+			return false	
+		}
+		
+	}
+</script>
