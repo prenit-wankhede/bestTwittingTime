@@ -1,4 +1,6 @@
 class HomeController < ApplicationController
+  include ApplicationHelper
+
   def index
 
   end
@@ -7,34 +9,36 @@ class HomeController < ApplicationController
 
   	if(!params[:username].blank? or !params[:user_id].blank?)
 
-  		client = Twitter::REST::Client.new do |config|
-		  config.consumer_key        = "7LnFUoVNaCgu9x1qCxFpvXa8j"
-		  config.consumer_secret     = "6dh16oa9q5KUBUhlT2mbV3YQ0E5JZJmvW5z63tFpyOYAmp5l2p"
-		  config.access_token        = "2304850946-EMB8JHZVXeeSswSVHs1LjLGp6cABy05eH0IpAPD"
-		  config.access_token_secret = "YXnOddRf1tu8OWeloVSIQzh7ZUCsiqhnYzsXE35G0tZbt"
-		end
-
-		#me = client.user("prenitwankhede")
-
+  		client = get_default_twitter_client # code moved to application helper module
 		username_or_id = params[:username]
-		username_or_id = params[:user_id] if !username_or_id.blank?
+		username_or_id = params[:user_id] if username_or_id.blank?
+
+		user = nil
+		begin 
+			user = client.user(username_or_id)
+		rescue
+			render plain: "User does not exist on twitter or you are not authorized" and return
+		end
 
 		followers = []
 		next_cursor = -1
 
 		while next_cursor != 0
-			response = client.followers(username_or_id, :cursor => next_cursor)
-			followers = followers + response.attrs[:users]    
-		    next_cursor = response.attrs[:next_cursor]
+			response = rate_limited_followers(client, username_or_id, next_cursor) # code moved to ApplicationHelper Module
+
+			if(response.nil?)
+				next_cursor = 0
+			else
+				followers = followers + response.attrs[:users]    
+		    	next_cursor = response.attrs[:next_cursor]		
+			end
+			
 		end
 
 		twits_by_followers = []
 		followers.each do |follower|
-			begin 
-				twits_by_followers = twits_by_followers + client.user_timeline(follower[:screen_name])
-			rescue
-				Rails.logger.debug "$$$$$$$$$$$$$$$$$$$$ error raised for " + follower[:screen_name] + "\n"
-			end
+			response = rate_limited_twits(twits_by_followers, client, follower) # code moved to ApplicationHelper Module
+			twits_by_followers = twits_by_followers + response
 		end
 
 		twit_time_slots = {}
@@ -50,12 +54,13 @@ class HomeController < ApplicationController
 
 		max_twit_time_slot = twit_time_slots.max_by{|k,v| v}
 		max_twit_day_slot = twit_day_slots.max_by{|k,v| v}
+		
+		render plain: username_or_id + " should twit between " + max_twit_time_slot[0] + ":00 to " + (max_twit_time_slot[0].to_i + 1).to_s + ":00 and on " + max_twit_day_slot[0]
 
-		render plain: username_or_id + " should twit between " + max_twit_time_slot[0] + " to " + (max_twit_time_slot[0].to_i + 1).to_s + " and on " + max_twit_day_slot[0]
   	else
   		render :index	
   	end
   	
-  	
+	  	
   end
 end
